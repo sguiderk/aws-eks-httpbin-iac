@@ -1,0 +1,126 @@
+# Private/Internal NGINX Ingress Controller
+# Deploys an internal (VPC-only) ingress controller with internal NLB
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx-internal
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ingress-nginx-internal
+  namespace: ingress-nginx-internal
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller-internal
+  namespace: ingress-nginx-internal
+data:
+  allow-snippet-annotations: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller-internal
+  namespace: ingress-nginx-internal
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: https
+  selector:
+    app.kubernetes.io/name: ingress-nginx-internal
+    app.kubernetes.io/instance: ingress-nginx-internal
+    app.kubernetes.io/component: controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingress-nginx-controller-internal
+  namespace: ingress-nginx-internal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx-internal
+      app.kubernetes.io/instance: ingress-nginx-internal
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ingress-nginx-internal
+        app.kubernetes.io/instance: ingress-nginx-internal
+        app.kubernetes.io/component: controller
+    spec:
+      serviceAccountName: ingress-nginx-internal
+      containers:
+      - name: controller
+        image: registry.k8s.io/ingress-nginx/controller:v1.11.2
+        args:
+        - /nginx-ingress-controller
+        - --ingress-class=nginx-internal
+        - --election-id=ingress-nginx-leader-internal
+        - --controller-class=k8s.io/ingress-nginx-internal
+        - --configmap=$(POD_NAMESPACE)/ingress-nginx-controller-internal
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LD_PRELOAD
+          value: /usr/local/lib/libmimalloc.so
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: https
+          containerPort: 443
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 90Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx-internal
+spec:
+  controller: k8s.io/ingress-nginx-internal

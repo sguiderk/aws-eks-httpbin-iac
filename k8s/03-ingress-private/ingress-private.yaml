@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: httpbin-private
+spec:
+  ingressClassName: nginx-internal
+  rules:
+  - http:
+      paths:
+      - path: /post
+        pathType: Prefix
+        backend:
+          service:
+            name: httpbin
+            port:
+              number: 80

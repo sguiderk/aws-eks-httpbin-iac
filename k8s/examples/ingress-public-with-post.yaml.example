@@ -5,10 +5,20 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
+  ingressClassName: nginx
   rules:
   - http:
       paths:
+      # Public /get endpoint
       - path: /get
+        pathType: Prefix
+        backend:
+          service:
+            name: httpbin
+            port:
+              number: 80
+      # Add /post to public access (if needed)
+      - path: /post
         pathType: Prefix
         backend:
           service:
