@@ -17,3 +17,13 @@ output "configure_kubectl" {
   description = "Command to configure kubectl"
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.aws_region}"
 }
+
+output "bastion_instance_id" {
+  description = "SSM bastion instance ID"
+  value       = module.ssm_bastion.instance_id
+}
+
+output "iam_groups" {
+  description = "IAM groups created for EKS access"
+  value       = module.iam_groups.group_names
+}

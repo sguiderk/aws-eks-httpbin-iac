@@ -1,5 +1,6 @@
-# NGINX Ingress Controller deployment
+# Optional: NGINX Ingress Controller deployment via Helm
 resource "helm_release" "ingress_nginx" {
+  count            = var.deploy_ingress_nginx ? 1 : 0
   name             = "ingress-nginx"
   repository       = "https://kubernetes.github.io/ingress-nginx"
   chart            = "ingress-nginx"
@@ -7,40 +8,31 @@ resource "helm_release" "ingress_nginx" {
   namespace        = "ingress-nginx"
   create_namespace = true
 
-  # AWS-specific configuration for Network Load Balancer
   set {
     name  = "controller.service.type"
     value = "LoadBalancer"
   }
-
   set {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
     value = "nlb"
   }
-
   set {
     name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-cross-zone-load-balancing-enabled"
     value = "true"
   }
-
-  # Enable ingress class as default
   set {
     name  = "controller.ingressClassResource.default"
     value = "true"
   }
-
-  # Resource limits for production
   set {
     name  = "controller.resources.requests.cpu"
     value = "100m"
   }
-
   set {
     name  = "controller.resources.requests.memory"
     value = "90Mi"
   }
 
-  # Wait for deployment to be ready
   wait    = true
   timeout = 600
 
@@ -64,8 +56,4 @@ data "kubernetes_service" "ingress_nginx" {
     name      = "ingress-nginx-controller"
     namespace = "ingress-nginx"
   }
-
-  depends_on = [
-    helm_release.ingress_nginx
-  ]
 }
