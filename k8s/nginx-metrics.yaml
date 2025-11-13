@@ -1,0 +1,71 @@
+# NGINX Ingress Prometheus Metrics Configuration
+# This enables Prometheus metrics exporter for monitoring 4xx/5xx errors
+
+---
+# ServiceMonitor for Prometheus Operator (if using)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller-metrics
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 10254
+    targetPort: 10254
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+
+---
+# ServiceMonitor for Internal Ingress Controller
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller-internal-metrics
+  namespace: ingress-nginx-internal
+  labels:
+    app.kubernetes.io/name: ingress-nginx-internal
+    app.kubernetes.io/component: controller
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 10254
+    targetPort: 10254
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: ingress-nginx-internal
+    app.kubernetes.io/component: controller
+
+---
+# ConfigMap to enable detailed metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  use-forwarded-headers: "true"
+  enable-opentelemetry: "false"
+  # Enable Prometheus metrics
+  enable-metrics: "true"
+  # Log format for detailed analysis
+  log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
+
+---
+# ConfigMap for internal ingress
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller-internal
+  namespace: ingress-nginx-internal
+data:
+  allow-snippet-annotations: "true"
+  enable-metrics: "true"
+  log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'

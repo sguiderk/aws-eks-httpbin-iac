@@ -2,10 +2,18 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: httpbin-private
+  annotations:
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
   ingressClassName: nginx-internal
+  tls:
+  - hosts:
+    - httpbin-private.internal
+    secretName: httpbin-private-tls
   rules:
-  - http:
+  - host: httpbin-private.internal
+    http:
       paths:
       - path: /post
         pathType: Prefix
