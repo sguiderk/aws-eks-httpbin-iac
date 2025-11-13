@@ -145,12 +145,7 @@ terraform/
         └── main.tf
 
 tests/
-├── test-complete.ps1        # Full end-to-end test suite (8 scenarios)
 ├── test-simple.ps1          # Quick validation script
-├── test-private-post.ps1    # SSM-based internal endpoint test
-├── test-httpbin.ps1         # Application health check
-├── test-ssm.ps1             # Bastion connectivity test
-└── README.md
 ```
 
 ## Best Practices Implemented
@@ -204,22 +199,6 @@ The project includes a comprehensive test suite in the `tests/` directory:
 # Quick validation
 powershell -ExecutionPolicy Bypass -File .\tests\test-simple.ps1
 
-# Full end-to-end test (8 scenarios)
-powershell -ExecutionPolicy Bypass -File .\tests\test-complete.ps1
-
-# SSM bastion connectivity
-powershell -ExecutionPolicy Bypass -File .\tests\test-ssm.ps1
-```
-
-Test coverage includes:
-1. Public `/get` endpoint accessibility
-2. Public `/post` endpoint properly blocked (404)
-3. Private NLB not accessible from internet
-4. Private `/post` accessible within cluster
-5. Ingress controller health and readiness
-6. Ingress configuration validation
-7. Application pod status
-8. Direct service ClusterIP access
 
 ## Monitoring & Alerts
 
